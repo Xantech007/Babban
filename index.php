@@ -1,7 +1,17 @@
 <?php
 session_start();
+require 'db_connect.php';
 require 'check_if_added.php';
+
+// Fetch categories
+$categories = $conn->query("SELECT * FROM categories");
+
+// Fetch products, optionally filtered by category
+$category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
+$product_query = $category_filter ? "SELECT * FROM products WHERE category_id = $category_filter" : "SELECT * FROM products";
+$products = $conn->query($product_query);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,18 +19,12 @@ require 'check_if_added.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lifestyle Store - Shop Like Jumia</title>
     <link rel="shortcut icon" href="img/lifestyleStore.png" />
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css" type="text/css">
-    <!-- jQuery -->
-    <script type="text/javascript" src="bootstrap/js/jquery-3.2.1.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script type="text/javascript" src="bootstrap/js/bootstrap.min.js"></script>
-    <!-- External CSS -->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <script src="bootstrap/js/jquery-3.2.1.min.js"></script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/style.css" type="text/css">
-    <!-- Font Awesome for icons (like Jumia) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
-        /* Custom styles inspired by Jumia */
         #bannerImage {
             background: url('img/banner.jpg') no-repeat center center;
             background-size: cover;
@@ -32,63 +36,24 @@ require 'check_if_added.php';
             justify-content: center;
             margin-bottom: 20px;
         }
-        #bannerContent h1 {
-            font-size: 2.5em;
-            font-weight: bold;
-        }
-        #bannerContent p {
-            font-size: 1.2em;
-        }
-        .category-sidebar {
-            background: #f8f8f8;
-            padding: 15px;
-            border-radius: 5px;
-        }
-        .category-sidebar h4 {
-            margin-bottom: 15px;
-        }
-        .category-sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-        .category-sidebar ul li {
-            padding: 10px 0;
-        }
-        .category-sidebar ul li a {
-            color: #333;
-            text-decoration: none;
-        }
-        .category-sidebar ul li a:hover {
-            color: #f28c38;
-        }
-        .thumbnail img {
-            height: 200px;
-            object-fit: cover;
-        }
-        .thumbnail {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            transition: transform 0.2s;
-        }
-        .thumbnail:hover {
-            transform: scale(1.05);
-        }
-        .footer {
-            background: #333;
-            color: white;
-            padding: 20px 0;
-        }
-        .footer a {
-            color: #f28c38;
-            margin: 0 10px;
-        }
-        .search-bar {
-            margin: 15px 0;
-        }
-        .carousel-caption {
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
-        }
+        #bannerContent h1 { font-size: 2.5em; font-weight: bold; }
+        #bannerContent p { font-size: 1.2em; }
+        .category-sidebar { background: #f8f8f8; padding: 15px; border-radius: 5px; }
+        .category-sidebar h4 { margin-bottom: 15px; }
+        .category-sidebar ul { list-style: none; padding: 0; }
+        .category-sidebar ul li { padding: 10px 0; }
+        .category-sidebar ul li a { color: #333; text-decoration: none; }
+        .category-sidebar ul li a:hover { color: #f28c38; }
+        .thumbnail img { height: 50px; object-fit: cover; } /* 1/4 size (original ~200px) */
+        .thumbnail { border: 1px solid #ddd; border-radius: 5px; transition: transform 0.2s; padding: 10px; }
+        .thumbnail:hover { transform: scale(1.05); }
+        .footer { background: #333; color: white; padding: 20px 0; }
+        .footer a { color: #f28c38; margin: 0 10px; }
+        .search-bar { margin: 15px 0; }
+        .carousel-caption { background: rgba(0, 0, 0, 0.5); border-radius: 5px; }
+        .category-section { margin-bottom: 30px; }
+        .category-section h3 { color: #f28c38; }
+        .category-description { font-style: italic; color: #666; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -97,7 +62,7 @@ require 'check_if_added.php';
 
         <!-- Search Bar -->
         <div class="container search-bar">
-            <form action="products.php" method="GET" class="form-inline">
+            <form action="index.php" method="GET" class="form-inline">
                 <div class="form-group">
                     <input type="text" class="form-control" name="search" placeholder="Search for products..." style="width: 80%;">
                     <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
@@ -105,45 +70,7 @@ require 'check_if_added.php';
             </form>
         </div>
 
-        <!-- Featured Products Carousel -->
-        <div id="featuredCarousel" class="carousel slide" data-ride="carousel">
-            <ol class="carousel-indicators">
-                <li data-target="#featuredCarousel" data-slide-to="0" class="active"></li>
-                <li data-target="#featuredCarousel" data-slide-to="1"></li>
-                <li data-target="#featuredCarousel" data-slide-to="2"></li>
-            </ol>
-            <div class="carousel-inner">
-                <div class="item active">
-                    <img src="img/cannon_eos.jpg" alt="Cannon EOS" style="height: 400px; object-fit: cover;">
-                    <div class="carousel-caption">
-                        <h3>Cannon EOS - 40% OFF</h3>
-                        <p>Shop now for the best deals!</p>
-                    </div>
-                </div>
-                <div class="item">
-                    <img src="img/titan301.jpg" alt="Titan Watch" style="height: 400px; object-fit: cover;">
-                    <div class="carousel-caption">
-                        <h3>Titan Model #301</h3>
-                        <p>Luxury watches at unbeatable prices!</p>
-                    </div>
-                </div>
-                <div class="item">
-                    <img src="img/raymond.jpg" alt="Raymond Shirt" style="height: 400px; object-fit: cover;">
-                    <div class="carousel-caption">
-                        <h3>Raymond Shirts</h3>
-                        <p>Elegance in every thread!</p>
-                    </div>
-                </div>
-            </div>
-            <a class="left carousel-control" href="#featuredCarousel" data-slide="prev">
-                <span class="glyphicon glyphicon-chevron-left"></span>
-            </a>
-            <a class="right carousel-control" href="#featuredCarousel" data-slide="next">
-                <span class="glyphicon glyphicon-chevron-right"></span>
-            </a>
-        </div>
-
-        <!-- Banner from index.php -->
+        <!-- Banner -->
         <div id="bannerImage">
             <div class="container">
                 <center>
@@ -164,70 +91,74 @@ require 'check_if_added.php';
                     <div class="category-sidebar">
                         <h4>Categories</h4>
                         <ul>
-                            <li><a href="?category=cameras">Cameras</a></li>
-                            <li><a href="?category=watches">Watches</a></li>
-                            <li><a href="?category=shirts">Shirts</a></li>
-                            <li><a href="?category=all">All Products</a></li>
+                            <li><a href="index.php">All Products</a></li>
+                            <?php while ($category = $categories->fetch_assoc()) { ?>
+                                <li><a href="?category=<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></a></li>
+                            <?php } $categories->data_seek(0); ?>
                         </ul>
                     </div>
                 </div>
 
-                <!-- Product Listings -->
+                <!-- Product Listings by Category -->
                 <div class="col-md-9">
                     <div class="jumbotron">
                         <h1>Welcome to our Lifestyle Store!</h1>
-                        <p>We have the best cameras, watches, and shirts for you. No need to hunt around, we have all in one place.</p>
+                        <p>We have the best cameras, watches, shirts, and more for you.</p>
                     </div>
 
-                    <!-- Product Grid -->
-                    <div class="row">
-                        <!-- Cameras -->
-                        <?php
-                        $products = [
-                            ['id' => 1, 'name' => 'Cannon EOS', 'price' => 36000.00, 'image' => 'img/cannon_eos.jpg', 'category' => 'cameras'],
-                            ['id' => 2, 'name' => 'Sony DSLR', 'price' => 40000.00, 'image' => 'img/sony_dslr.jpeg', 'category' => 'cameras'],
-                            ['id' => 3, 'name' => 'Sony DSLR', 'price' => 50000.00, 'image' => 'img/sony_dslr2.jpeg', 'category' => 'cameras'],
-                            ['id' => 4, 'name' => 'Olympus DSLR', 'price' => 80000.00, 'image' => 'img/olympus.jpg', 'category' => 'cameras'],
-                            ['id' => 5, 'name' => 'Titan Model #301', 'price' => 13000.00, 'image' => 'img/titan301.jpg', 'category' => 'watches'],
-                            ['id' => 6, 'name' => 'Titan Model #201', 'price' => 3000.00, 'image' => 'img/titan201.jpg', 'category' => 'watches'],
-                            ['id' => 7, 'name' => 'HMT Milan', 'price' => 8000.00, 'image' => 'img/hmt.JPG', 'category' => 'watches'],
-                            ['id' => 8, 'name' => 'Favre Leuba #111', 'price' => 18000.00, 'image' => 'img/favreleuba.jpg', 'category' => 'watches'],
-                            ['id' => 9, 'name' => 'Raymond', 'price' => 1500.00, 'image' => 'img/raymond.jpg', 'category' => 'shirts'],
-                            ['id' => 10, 'name' => 'Charles', 'price' => 1000.00, 'image' => 'img/charles.jpg', 'category' => 'shirts'],
-                            ['id' => 11, 'name' => 'HXR', 'price' => 900.00, 'image' => 'img/HXR.jpg', 'category' => 'shirts'],
-                            ['id' => 12, 'name' => 'PINK', 'price' => 1200.00, 'image' => 'img/pink.jpg', 'category' => 'shirts'],
-                        ];
-
-                        // Filter products by category if selected
-                        $category = isset($_GET['category']) ? $_GET['category'] : 'all';
-                        foreach ($products as $product) {
-                            if ($category === 'all' || $product['category'] === $category) {
+                    <?php
+                    // Group products by category
+                    $categories->data_seek(0); // Reset pointer
+                    while ($category = $categories->fetch_assoc()) {
+                        $category_id = $category['id'];
+                        $category_name = htmlspecialchars($category['name']);
+                        $category_description = htmlspecialchars($category['description']);
+                        $products->data_seek(0); // Reset products pointer
+                        $has_products = false;
                         ?>
-                        <div class="col-md-4 col-sm-6">
-                            <div class="thumbnail">
-                                <a href="cart.php">
-                                    <img src="<?php echo $product['image']; ?>" alt="<?php echo $product['name']; ?>">
-                                </a>
-                                <center>
-                                    <div class="caption">
-                                        <h3><?php echo $product['name']; ?></h3>
-                                        <p>Price: Rs. <?php echo number_format($product['price'], 2); ?></p>
-                                        <?php if (!isset($_SESSION['email'])) { ?>
-                                            <p><a href="login.php" role="button" class="btn btn-primary btn-block">Buy Now</a></p>
-                                        <?php } else {
-                                            if (check_if_added_to_cart($product['id'])) {
-                                                echo '<a href="#" class="btn btn-block btn-success disabled">Added to cart</a>';
-                                            } else { ?>
-                                                <a href="cart_add.php?id=<?php echo $product['id']; ?>" class="btn btn-block btn-primary" name="add">Add to cart</a>
-                                        <?php }
-                                        } ?>
-                                    </div>
-                                </center>
+                        <div class="category-section">
+                            <h3><?php echo $category_name; ?></h3>
+                            <p class="category-description"><?php echo $category_description; ?></p>
+                            <div class="row">
+                                <?php
+                                while ($product = $products->fetch_assoc()) {
+                                    if ($product['category_id'] == $category_id) {
+                                        $has_products = true;
+                                        ?>
+                                        <div class="col-md-6 col-sm-6"> <!-- 2 products per row -->
+                                            <div class="thumbnail">
+                                                <a href="cart.php">
+                                                    <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                                </a>
+                                                <center>
+                                                    <div class="caption">
+                                                        <h4><?php echo htmlspecialchars($product['name']); ?></h4>
+                                                        <p>Price: Rs. <?php echo number_format($product['price'], 2); ?></p>
+                                                        <?php if (!isset($_SESSION['email'])) { ?>
+                                                            <p><a href="login.php" role="button" class="btn btn-primary btn-block">Buy Now</a></p>
+                                                        <?php } else {
+                                                            if (check_if_added_to_cart($product['id'])) {
+                                                                echo '<a href="#" class="btn btn-block btn-success disabled">Added to cart</a>';
+                                                            } else { ?>
+                                                                <a href="cart_add.php?id=<?php echo $product['id']; ?>" class="btn btn-block btn-primary" name="add">Add to cart</a>
+                                                        <?php }
+                                                        } ?>
+                                                    </div>
+                                                </center>
+                                            </div>
+                                        </div>
+                                        <?php
+                                    }
+                                }
+                                ?>
                             </div>
+                            <?php if (!$has_products) { ?>
+                                <p>No products available in this category.</p>
+                            <?php } ?>
                         </div>
-                        <?php }
-                        } ?>
-                    </div>
+                        <?php
+                    }
+                    ?>
                 </div>
             </div>
         </div>
@@ -248,14 +179,14 @@ require 'check_if_added.php';
         </footer>
     </div>
 
-    <!-- JavaScript for Search (Basic Example) -->
+    <!-- JavaScript for Search -->
     <script>
         $(document).ready(function() {
             $('form').submit(function(e) {
                 e.preventDefault();
                 let searchTerm = $('input[name="search"]').val().toLowerCase();
                 $('.thumbnail').each(function() {
-                    let productName = $(this).find('h3').text().toLowerCase();
+                    let productName = $(this).find('h4').text().toLowerCase();
                     if (productName.includes(searchTerm) || searchTerm === '') {
                         $(this).parent().show();
                     } else {
